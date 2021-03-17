@@ -66,6 +66,7 @@ class Bluetooth:
 
         self.uuid = "94f39d29-7d6d-437d-973b-fba39e49d4ee"
 
+    def connect(self):
         bluetooth.advertise_service(self.server_sock, "Autonomous Car", service_id=self.uuid,
                                     service_classes=[
                                         self.uuid,
@@ -78,8 +79,12 @@ class Bluetooth:
         self.client_sock, selfclient_info = self.server_sock.accept()
         print("Accepted connection from ", self.client_info)
 
+    def disconnect(self):
+        self.client_sock.close()
+        self.server_sock.close()
+
     def getData(self):
-        return client_sock.recv(1024)
+        return self.client_sock.recv(1024)
 
     def __del__(self):
         print("Bluetooth Disconnected.")
@@ -87,44 +92,95 @@ class Bluetooth:
         self.server_sock.close()
 
 
+class Arduino:
+    def __init__(self):
+        self.serial = serial.Serial('/dev/ttyACM0', 9600, timeout=.1)
+        self.serial.flush()
+
+    def read(self):
+        if self.serial.in_waiting > 0:
+            data = self.serial.readline().decode('utf-8').rstrip().split(':')
+            self.command = data[self.mode]
+
+    def flush(self):
+        self.serial.reset_input_buffer()
+
+
+class Motor:
+    def __init__(self):
+
+        # Motor control pins
+        self.forward_pin = 1
+        self.reverse_pin = 2
+        self.left_pin = 3
+        self.right_pin = 4
+
+        # Command mapped to functions
+        self.driver = {
+            1: self.forward,           # Forward
+            2: self.reverseforward,    # Reverse
+            3: self.leftforward,       # Left
+            4: self.rightforward,      # Right
+        }
+
+        # Setup
+        GPIO.output(self.forward_pin, GPIO.OUT)
+        GPIO.output(self.reverse_pin, GPIO.OUT)
+        GPIO.output(self.left_pin, GPIO.OUT)
+        GPIO.output(self.right_pin, GPIO.OUT)
+
+    def forward(self):
+        GPIO.output(self.forward_pin, GPIO.HIGH)
+        GPIO.output(self.reverse_pin, GPIO.LOW)
+        GPIO.output(self.left_pin, GPIO.LOW)
+        GPIO.output(self.right_pin, GPIO.LOW)
+
+    def reverse(self):
+        GPIO.output(self.forward_pin, GPIO.LOW)
+        GPIO.output(self.reverse_pin, GPIO.HIGH)
+        GPIO.output(self.left_pin, GPIO.LOW)
+        GPIO.output(self.right_pin, GPIO.LOW)
+
+    def left(self):
+        GPIO.output(self.forward_pin, GPIO.HIGH)
+        GPIO.output(self.reverse_pin, GPIO.LOW)
+        GPIO.output(self.left_pin, GPIO.HIGH)
+        GPIO.output(self.right_pin, GPIO.LOW)
+
+    def right(self):
+        GPIO.output(self.forward_pin, GPIO.HIGH)
+        GPIO.output(self.reverse_pin, GPIO.LOW)
+        GPIO.output(self.left_pin, GPIO.LOW)
+        GPIO.output(self.right_pin, GPIO.HIGH)
+
+    def run(self, command):
+        self.driver[command]()
+
+
 class MasterController:
 
     def __init__(self):
-        '''Main framework of the rover'''
+        '''Main framework of the car'''
 
-        # Current Mode
+        # Status Variables
         self.mode = 0
         self.command = 0
+        self.read = 0
 
-        # Command mapped to Motor Driver pins
-        self.driver = {
-            0: 1    # Stop
-            1: 2    # Forward
-            2: 3    # Reverse
-            3: 4    # Left
-            4: 5    # Right
-        }
+        # Motor
+        self.motor = Motor()
 
-        # Motor control pins
-        for command, pin in enumerate(self.driver):
-            GPIO.setup(self.driver[pin], GPIO.OUT)
+        # Arduino
+        self.arduino = Arduino()
 
-        # Serial to arduino
-        self.ser = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
-        self.ser.flush()
+        # Bluetooth
+        self.bluetooth = Bluetooth()
 
-   def loop(self):
+    def loop(self):
+        if(self.read):
+            self.arduino.read()
 
-        if self.ser.in_waiting > 0:
-            data = self.ser.readline().decode('utf-8').rstrip().split(':')
-            if self.mode < 3:
-                self.command = data[self.mode]
-
-        if(self.command):
-            GPIO.output(self.driver[self.command], GPIO.HIGH)
-        else:
-            for command, pin in enumerate(self.driver):
-                GPIO.output(self.driver[pin], GPIO.LOW)
+        self.motor.run(self.command)
 
     def webserver(self):
         if(self.mode == 0):
