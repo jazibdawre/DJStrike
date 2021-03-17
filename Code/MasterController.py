@@ -117,6 +117,7 @@ class Motor:
 
         # Command mapped to functions
         self.driver = {
+            0: self.stop,              # Stop
             1: self.forward,           # Forward
             2: self.reverseforward,    # Reverse
             3: self.leftforward,       # Left
@@ -153,6 +154,12 @@ class Motor:
         GPIO.output(self.left_pin, GPIO.LOW)
         GPIO.output(self.right_pin, GPIO.HIGH)
 
+    def stop(self):
+        GPIO.output(self.forward_pin, GPIO.LOW)
+        GPIO.output(self.reverse_pin, GPIO.LOW)
+        GPIO.output(self.left_pin, GPIO.LOW)
+        GPIO.output(self.right_pin, GPIO.LOW)
+
     def run(self, command):
         self.driver[command]()
 
@@ -167,6 +174,16 @@ class MasterController:
         self.command = 0
         self.read = 0
 
+        # modes mapped to functions
+        self.select_modes = {
+            0: self.manual_mode,                    # Manual
+            1: self.ir_mode,                        # IR
+            2: self.obstacle_mode,                  # Obstacle
+            3: self.voice_controlled_mode,          # Voice
+            4: self.gui_controlled_mode,            # GUI
+            5: self.autonomous_controlled_mode,     # Autonomous
+        }
+
         # Motor
         self.motor = Motor()
 
@@ -176,36 +193,50 @@ class MasterController:
         # Bluetooth
         self.bluetooth = Bluetooth()
 
+    # Statements that need to be run continously, non-blocking
     def loop(self):
-        if(self.read):
-            self.arduino.read()
-
         self.motor.run(self.command)
 
-    def webserver(self):
-        if(self.mode == 0):
-            print("\nManual Mode")
-        elif(self.mode == 1):
-            print("\nIR Mode")
-        elif(self.mode == 2):
-            print("\nObstacle Mode")
-        if(self.mode == 3):
-            print("\nVoice Controlled Mode")
-            voice_controlled_mode()
-        if(self.mode == 4):
-            print("\nGUI Mode")
-            gui_controlled_mode()
-        if(self.mode == 5):
-            print("\nAutnomous Mode")
-            autonomous_controlled_mode()
+    def set_mode(self):
+        self.mode = 0   # from webserver
+        self.select_modes[self.mode]()
 
     # Mode definitions
 
+    def manual_mode(self):  # Left to implement
+        print("\n [*] Manual Mode")  # transfer these to webserver
+        self.arduino.read()
+        self.command = self.arduino.command
+
+    def ir_mode(self):  # Left to implement
+        print("\n [*] IR Mode")
+        self.arduino.read()
+        self.command = self.arduino.command
+
+    def obstacle_mode(self):  # Left to implement
+        print("\n [*] Obstacle Mode")
+        self.arduino.read()
+        self.command = self.arduino.command
+
     def voice_controlled_mode(self):  # Left to implement
-        pass
+        print("\n [*] Voice Controlled Mode")
+        self.bluetooth.connect()
+
+    def gui_mode(self):  # Left to implement
+        print("\n [*] GUI Mode")
 
     def autonomous_controlled_mode(self):  # Left to implement
-        pass
+        print("\n [*] Autnomous Mode")
 
     def __del__(self):
         GPIO.cleanup()
+
+
+if __name__ == '__main__':
+    bl = Bluetooth()
+    bl.connect()
+
+    input()
+
+    bl.disconnect()
+    del bl
