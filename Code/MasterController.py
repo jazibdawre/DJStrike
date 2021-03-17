@@ -28,22 +28,63 @@
 # ================================================================================
 import RPi.GPIO as GPIO
 import serial
+import bluetooth
 # ================================================================================
 GPIO.setmode(GPIO.BOARD)
 # ================================================================================
 '''
     Serial Data format:
         MANUAL : INFRARED : OBSTACLE
-    
-    Index:
-        MANUAL : INFRARED : OBSTACLE
-          0         0          0         -   Forward
-          1         1          1         -   Stop
-          2         2                    -   Reverse
-          3         3                    -   Right
-          4         4                    -   Left
+
+    Command Index:
+        0   -   Stop
+        1   -   Forward
+        2   -   Reverse
+        3   -   Left
+        4   -   Right
+
+    Mode Index:
+        0   -   MANUAL
+        1   -   INFRARED
+        2   -   OBSTACLE
+        3   -   VOICE
+        4   -   GUI
+        5   -   AUTONOMOUS
 '''
 # ================================================================================
+
+
+class Bluetooth:
+    def __init__(self):
+        '''Bluetooth Communication stack'''
+        self.server_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+
+        self.server_sock.bind(("", bluetooth.PORT_ANY))
+        self.server_sock.listen(1)
+
+        self.port = self.server_sock.getsockname()[1]
+
+        self.uuid = "94f39d29-7d6d-437d-973b-fba39e49d4ee"
+
+        bluetooth.advertise_service(self.server_sock, "Autonomous Car", service_id=self.uuid,
+                                    service_classes=[
+                                        self.uuid,
+                                        bluetooth.SERIAL_PORT_CLASS
+                                    ],
+                                    profiles=[bluetooth.SERIAL_PORT_PROFILE])
+
+        print("Waiting for connection on RFCOMM channel ", self.port)
+
+        self.client_sock, selfclient_info = self.server_sock.accept()
+        print("Accepted connection from ", self.client_info)
+
+    def getData(self):
+        return client_sock.recv(1024)
+
+    def __del__(self):
+        print("Bluetooth Disconnected.")
+        self.client_sock.close()
+        self.server_sock.close()
 
 
 class MasterController:
@@ -53,131 +94,62 @@ class MasterController:
 
         # Current Mode
         self.mode = 0
+        self.command = 0
 
-        # Motor Driver pins
-        self.forward = 24
-        self.backward = 28
-        self.left = 14
-        self.right = 14
+        # Command mapped to Motor Driver pins
+        self.driver = {
+            0: 1    # Stop
+            1: 2    # Forward
+            2: 3    # Reverse
+            3: 4    # Left
+            4: 5    # Right
+        }
 
         # Motor control pins
-        GPIO.setup(forward, GPIO.OUT)
-        GPIO.setup(backward, GPIO.OUT)
-        GPIO.setup(left, GPIO.OUT)
-        GPIO.setup(right, GPIO.OUT)
+        for command, pin in enumerate(self.driver):
+            GPIO.setup(self.driver[pin], GPIO.OUT)
 
         # Serial to arduino
         self.ser = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
         self.ser.flush()
 
-    def loop():
+   def loop(self):
 
         if self.ser.in_waiting > 0:
             data = self.ser.readline().decode('utf-8').rstrip().split(':')
+            if self.mode < 3:
+                self.command = data[self.mode]
 
-        if(GPIO.input(2) == GPIO.HIGH):
-            print("Manual Mode")
-            manual_mode()
-        elif(GPIO.input(3) == GPIO.HIGH):
-            # print("IR Mode")
-            line_follower_mode()
-        elif(GPIO.input(4) == GPIO.HIGH):
-            print("Voice Controlled Mode")
-            voice_controlled_mode()
-        if(GPIO.input(5) == GPIO.HIGH):
-            print("Obstacle Mode")
-            obstacle_detection_mode()
-
-    def obstacle_detection_mode():
-
-        # Only for testing
-        print("Obstacle IR: ")
-        print(obstacle_sensor_state)
-
-        if (obstacle_sensor_state > 500):
-            print("OBSTACLE!\nStop")
-            GPIO.output(forward, GPIO.LOW)
-            GPIO.output(backward, GPIO.LOW)
-            GPIO.output(left, GPIO.LOW)
-            GPIO.output(right, GPIO.LOW)
-
-    def manual_mode():
-
-        left_sensor_state = GPIO.input(38)
-        right_sensor_state = GPIO.input(34)
-        forward_sensor_state = GPIO.input(44)
-
-        # Only for testing
-        print("Left IR: ")
-        print(left_sensor_state)
-        print(" | Right IR: ")
-        print(right_sensor_state)
-        print(" | Forward IR: ")
-        print(forward_sensor_state)
-
-        if (forward_sensor_state == GPIO.HIGH):
-            print("Forward")
-            GPIO.output(right, GPIO.HIGH)
-            GPIO.output(left, GPIO.HIGH)
-            if (left_sensor_state == GPIO.HIGH):
-                print("Turning Left")
-                GPIO.output(forward, GPIO.LOW)
-                GPIO.output(backward, GPIO.HIGH)
-
-            if (right_sensor_state == GPIO.HIGH):
-                print("Turning Right")
-                GPIO.output(forward, GPIO.HIGH)
-                GPIO.output(backward, GPIO.LOW)
-
+        if(self.command):
+            GPIO.output(self.driver[self.command], GPIO.HIGH)
         else:
-            print("Stop")
-            GPIO.output(forward, GPIO.LOW)
-            GPIO.output(backward, GPIO.LOW)
-            GPIO.output(left, GPIO.LOW)
-            GPIO.output(right, GPIO.LOW)
+            for command, pin in enumerate(self.driver):
+                GPIO.output(self.driver[pin], GPIO.LOW)
 
-    def voice_controlled_mode():  # Left to implement
+    def webserver(self):
+        if(self.mode == 0):
+            print("\nManual Mode")
+        elif(self.mode == 1):
+            print("\nIR Mode")
+        elif(self.mode == 2):
+            print("\nObstacle Mode")
+        if(self.mode == 3):
+            print("\nVoice Controlled Mode")
+            voice_controlled_mode()
+        if(self.mode == 4):
+            print("\nGUI Mode")
+            gui_controlled_mode()
+        if(self.mode == 5):
+            print("\nAutnomous Mode")
+            autonomous_controlled_mode()
+
+    # Mode definitions
+
+    def voice_controlled_mode(self):  # Left to implement
         pass
 
-    def line_follower_mode():
+    def autonomous_controlled_mode(self):  # Left to implement
+        pass
 
-        left_sensor_state = analogRead(left_sensor_pin)
-        right_sensor_state = analogRead(right_sensor_pin)
-
-        # Only for testing
-        print("Left IR: ")
-        print(left_sensor_state)
-        print(" | Right IR: ")
-        print(right_sensor_state)
-
-        if (right_sensor_state < 500 and left_sensor_state > 500):
-            # print("Turning Left")
-            GPIO.output(forward, GPIO.LOW)
-            GPIO.output(backward, GPIO.HIGH)
-            # Change to GPIO.LOW for friction turning
-            GPIO.output(left, GPIO.HIGH)
-            GPIO.output(right, GPIO.HIGH)
-
-        if (right_sensor_state > 500 and left_sensor_state < 500):
-            # print("Turning Right")
-            GPIO.output(forward, GPIO.HIGH)
-            GPIO.output(backward, GPIO.LOW)
-            GPIO.output(left, GPIO.HIGH)
-            # Change to GPIO.LOW for friction turning
-            GPIO.output(right, GPIO.HIGH)
-
-        if (right_sensor_state < 500 and left_sensor_state < 500):
-            # print("Forward")
-            GPIO.output(backward, GPIO.LOW)  # Change to GPIO.HIGH for 4WD
-            GPIO.output(forward, GPIO.LOW)  # Change to GPIO.HIGH for 4WD
-            GPIO.output(right, GPIO.HIGH)
-            GPIO.output(left, GPIO.HIGH)
-
-        if (right_sensor_state > 500 and left_sensor_state > 500):
-            # print("Stop")
-            GPIO.output(forward, GPIO.LOW)
-            GPIO.output(backward, GPIO.LOW)
-            GPIO.output(left, GPIO.LOW)
-            GPIO.output(right, GPIO.LOW)
-
-    GPIO.cleanup()
+    def __del__(self):
+        GPIO.cleanup()
