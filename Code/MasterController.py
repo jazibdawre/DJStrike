@@ -29,6 +29,8 @@
 import RPi.GPIO as GPIO
 import serial
 import bluetooth
+import numpy as np
+import cv2
 # ================================================================================
 GPIO.setmode(GPIO.BOARD)
 # ================================================================================
@@ -164,6 +166,69 @@ class Motor:
         self.driver[command]()
 
 
+class Autonomous:
+    def __init__(self):
+        self.detect = 0
+        self.command = 0
+
+        # Capturing video through camera
+        self.camera = cv2.VideoCapture(0)
+
+    def detect_stop(self):
+        # Reading the video from the
+        # camera in image frames
+        _, imageFrame = self.camera.read()
+
+        # Convert the imageFrame in
+        # BGR(RGB color space) to
+        # HSV(hue-saturation-value)
+        # color space
+        hsvFrame = cv2.cvtColor(imageFrame, cv2.COLOR_BGR2HSV)
+
+        # Set range for red color and
+        # define mask
+        red_lower = np.array([163, 120, 120], np.uint8)
+        red_upper = np.array([189, 255, 255], np.uint8)
+        red_mask = cv2.inRange(hsvFrame, red_lower, red_upper)
+
+        kernal = np.ones((5, 5), "uint8")
+
+        # For red color
+        red_mask = cv2.dilate(red_mask, kernal)
+        res_red = cv2.bitwise_and(imageFrame, imageFrame, mask=red_mask)
+
+        # Creating contour to track red color
+        contours, hierarchy = cv2.findContours(
+            red_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+        self.detect = 0
+
+        for pic, contour in enumerate(contours):
+            area = cv2.contourArea(contour)
+            if (area > 500):
+                x, y, w, h = cv2.boundingRect(contour)
+                imageFrame = cv2.rectangle(imageFrame, (x, y),
+                                           (x + w, y + h),
+                                           (0, 0, 255), 2)
+                print("stop")
+
+                cv2.putText(imageFrame, "Stop", (x, y),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1.0,
+                            (0, 0, 255))
+
+                self.detect = 1
+
+            # Program Termination
+        cv2.imshow("Stop Detection in Real-TIme", imageFrame)
+
+    def detect_direction(self):
+        pass
+
+    def __del__(self):
+        # self.cap.release()
+        cv2.destroyAllWindows()
+
+
 class MasterController:
 
     def __init__(self):
@@ -193,6 +258,9 @@ class MasterController:
         # Bluetooth
         self.bluetooth = Bluetooth()
 
+        # Autnomous
+        self.autonomous = Autonomous()
+
     # Statements that need to be run continously, non-blocking
     def loop(self):
         self.motor.run(self.command)
@@ -203,22 +271,22 @@ class MasterController:
 
     # Mode definitions
 
-    def manual_mode(self):  # Left to implement
+    def manual_mode(self):
         print("\n [*] Manual Mode")  # transfer these to webserver
         self.arduino.read()
         self.command = self.arduino.command
 
-    def ir_mode(self):  # Left to implement
+    def ir_mode(self):
         print("\n [*] IR Mode")
         self.arduino.read()
         self.command = self.arduino.command
 
-    def obstacle_mode(self):  # Left to implement
+    def obstacle_mode(self):
         print("\n [*] Obstacle Mode")
         self.arduino.read()
         self.command = self.arduino.command
 
-    def voice_controlled_mode(self):  # Left to implement
+    def voice_controlled_mode(self):
         print("\n [*] Voice Controlled Mode")
         self.bluetooth.connect()
 
@@ -227,6 +295,8 @@ class MasterController:
 
     def autonomous_controlled_mode(self):  # Left to implement
         print("\n [*] Autnomous Mode")
+        self.autonomous.detect_stop()
+        self.autonomous.detect_direction()
 
     def __del__(self):
         GPIO.cleanup()
