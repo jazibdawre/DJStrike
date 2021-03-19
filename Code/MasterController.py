@@ -33,6 +33,7 @@ import numpy as np
 import cv2
 import os
 from matplotlib import pyplot as plt, cm, colors
+from http.server import BaseHTTPRequestHandler, HTTPServer
 # ================================================================================
 GPIO.setmode(GPIO.BOARD)
 # ================================================================================
@@ -133,11 +134,11 @@ class Motor():
 
         # Command mapped to functions
         self.driver = {
-            0: self.stop,              # Stop
-            1: self.forward,           # Forward
-            2: self.reverseforward,    # Reverse
-            3: self.leftforward,       # Left
-            4: self.rightforward,      # Right
+            0: self.stop,       # Stop
+            1: self.forward,    # Forward
+            2: self.reverse,    # Reverse
+            3: self.left,       # Left
+            4: self.right,      # Right
         }
 
         # Setup
@@ -623,10 +624,12 @@ class Autonomous():
         cv2.destroyAllWindows()
 
 
-class MasterController:
+class WebServer(BaseHTTPRequestHandler):
+    """ A special implementation of BaseHTTPRequestHander for Raspberry Pi
+    """
 
-    def __init__(self):
-        '''Main framework of the car'''
+    def __init__(self, request, client_address, server):
+        super().__init__(request, client_address, server)
 
         # index mapped to modes
         self.available_modes = {
@@ -637,6 +640,62 @@ class MasterController:
             4: "GUI",
             5: "Autonomous"
         }
+
+    def do_HEAD(self):
+        """ do_HEAD() can be tested use curl command 
+            'curl -I http://server-ip-address:port' 
+        """
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+
+    def do_GET(self):
+        """ do_GET() can be tested using curl command 
+            'curl http://server-ip-address:port' 
+        """
+
+        self.do_HEAD()
+
+        if self.path == '/manual':
+            Car.mode = 0
+        elif self.path == '/ir':
+            Car.mode = 1
+        elif self.path == '/obstacle':
+            Car.mode = 2
+        elif self.path == '/voice':
+            Car.mode = 3
+        elif self.path == '/gui':
+            Car.mode = 4
+        elif self.path == '/autonomous':
+            Car.mode = 5
+
+        if Car.mode == 4:
+            if self.path == '/stop':
+                Car.command = 0
+            elif self.path == '/forward':
+                Car.command = 1
+            elif self.path == '/reverse':
+                Car.command = 2
+            elif self.path == '/left':
+                Car.command = 3
+            elif self.path == '/right':
+                Car.command = 4
+        else:
+            print("\n [*] ", self.available_modes[Car.mode], " Mode")
+
+        self.send_response(200)
+
+    def passon(self):
+        pass
+
+
+class MasterController:
+
+    def __init__(self):
+        '''Main framework of the car'''
+
+        self.host_name = '192.168.0.101'
+        self.host_port = 8000
 
         # Motor
         self.motor = Motor()
@@ -650,13 +709,19 @@ class MasterController:
         # Autnomous
         self.autonomous = Autonomous()
 
+        # Web server
+        self.webserver = HTTPServer(
+            (self.host_name, self.host_port), WebServer)
+        print(" [*] Server started - %s:%s" % (self.host_name, self.host_port))
+        self.webserver.serve_forever()
+
         # modes mapped to functions
         self.trigger_mode = {
             0: self.arduino.read,           # Manual
             1: self.arduino.read,           # IR
             2: self.arduino.read,           # Obstacle
             3: self.bluetooth.run,          # Voice
-            4: self.gui_controlled_mode,    # GUI
+            4: self.webserver.passon,       # GUI
             5: self.self.autonomous.run,    # Autonomous
         }
 
@@ -665,22 +730,14 @@ class MasterController:
         self.trigger_mode[Car.mode]()
         self.motor.run()
 
-    def set_mode(self, mode):   # Move to webserver
-        Car.mode = mode
-        print("\n [*] ", self.available_modes[Car.mode], " Mode")
-        self.trigger_mode[self.mode]()
-
-    # Mode definitions
-    def gui_mode(self):  # Left to implement
-        pass
-
     def __del__(self):
+        self.webserver.server_close()
         GPIO.cleanup()
 
 
 if __name__ == '__main__':
     car = MasterController()
-    car.set_mode(0)
+    Car.mode = 0
     try:
         while(True):
             print(car.loop())
