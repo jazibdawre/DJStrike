@@ -58,9 +58,16 @@ GPIO.setmode(GPIO.BOARD)
 # ================================================================================
 
 
-class Bluetooth:
+class Car:
+    # Status Variables
+    mode = 0
+    command = 0
+
+
+class Bluetooth():
     def __init__(self):
         '''Bluetooth Communication stack'''
+
         self.server_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
 
         self.server_sock.bind(("", bluetooth.PORT_ANY))
@@ -70,11 +77,11 @@ class Bluetooth:
 
         # text mapped to commands
         self.commands = {
-            "stop": 0
-            "forward": 1
-            "reverse": 2
-            "left": 3
-            "right": 4
+            "stop": 0,
+            "forward": 1,
+            "reverse": 2,
+            "left": 3,
+            "right": 4,
         }
 
     def connect(self):
@@ -91,7 +98,7 @@ class Bluetooth:
         return str(self.client_sock.recv(1024)).split("'")[1][1:-1]
 
     def run(self):
-        self.command = self.commands(self.get_data())
+        Car.command = self.commands(self.get_data())
 
     def __del__(self):
         print("Bluetooth Disconnected.")
@@ -99,22 +106,23 @@ class Bluetooth:
         self.server_sock.close()
 
 
-class Arduino:
+class Arduino():
     def __init__(self):
         '''Arduino Serial Communication Stack'''
+
         self.serial = serial.Serial('/dev/ttyACM0', 9600, timeout=.1)
         self.serial.flush()
 
     def read(self):
         if self.serial.in_waiting > 0:
             data = self.serial.readline().decode('utf-8').rstrip().split(':')
-            self.command = data[self.mode]
+            Car.command = data[self.mode]
 
     def flush(self):
         self.serial.reset_input_buffer()
 
 
-class Motor:
+class Motor():
     def __init__(self):
 
         # Motor control pins
@@ -168,17 +176,24 @@ class Motor:
         GPIO.output(self.left_pin, GPIO.LOW)
         GPIO.output(self.right_pin, GPIO.LOW)
 
-    def run(self, command):
-        self.driver[command]()
+    def run(self):
+        self.driver[Car.command]()
 
 
-class Autonomous:
+class Autonomous():
     def __init__(self):
+
         self.detect = 0
-        self.command = 0
 
         # Capturing video through camera
         self.camera = cv2.VideoCapture(0)
+
+        # lane curvature mapped to commands
+        self.commands = {
+            "Straight": 1,
+            "Left Curve": 3,
+            "Right Curve": 4,
+        }
 
         # defining variables to hold meter-to-pixel conversion
         self.ym_per_pix = 30 / 720
@@ -211,6 +226,7 @@ class Autonomous:
             red_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
         self.detect = 0
+        Car.command = 1
 
         for pic, contour in enumerate(contours):
             area = cv2.contourArea(contour)
@@ -226,6 +242,7 @@ class Autonomous:
                             (0, 0, 255))
 
                 self.detect = 1
+                Car.command = 0
 
             # Program Termination
         cv2.imshow("Stop Detection in Real-TIme", self.frame)
@@ -443,13 +460,11 @@ class Autonomous:
         nonzeroy = np.array(nonzero[0])
         nonzerox = np.array(nonzero[1])
         margin = 100
-        left_lane_inds = ((nonzerox > (left_fit[0](nonzeroy*2) + left_fit[1]*nonzeroy +
-                                       left_fit[2] - margin)) & (nonzerox < (left_fit[0](nonzeroy*2) +
-                                                                             left_fit[1]*nonzeroy + left_fit[2] + margin)))
+        left_lane_inds = ((nonzerox > (left_fit[0]*(nonzeroy**2) + left_fit[1]*nonzeroy + left_fit[2] - margin)) &
+                          (nonzerox < (left_fit[0]*(nonzeroy**2) + left_fit[1]*nonzeroy + left_fit[2] + margin)))
 
-        right_lane_inds = ((nonzerox > (right_fit[0](nonzeroy*2) + right_fit[1]*nonzeroy +
-                                        right_fit[2] - margin)) & (nonzerox < (right_fit[0](nonzeroy*2) +
-                                                                               right_fit[1]*nonzeroy + right_fit[2] + margin)))
+        right_lane_inds = ((nonzerox > (right_fit[0]*(nonzeroy**2) + right_fit[1]*nonzeroy + right_fit[2] - margin)) &
+                           (nonzerox < (right_fit[0]*(nonzeroy**2) + right_fit[1]*nonzeroy + right_fit[2] + margin)))
 
         leftx = nonzerox[left_lane_inds]
         lefty = nonzeroy[left_lane_inds]
@@ -459,8 +474,8 @@ class Autonomous:
         right_fit = np.polyfit(righty, rightx, 2)
         ploty = np.linspace(
             0, binary_warped.shape[0]-1, binary_warped.shape[0])
-        left_fitx = left_fit[0]ploty*2 + left_fit[1]*ploty + left_fit[2]
-        right_fitx = right_fit[0]ploty*2 + right_fit[1]*ploty + right_fit[2]
+        left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+        right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
 
         ## VISUALIZATION ###########################################################
 
@@ -518,8 +533,10 @@ class Autonomous:
             ploty*self.ym_per_pix, rightx*self.xm_per_pix, 2)
 
         # Calculate the new radii of curvature
-        left_curverad = ((1 + (2*left_fit_cr[0]y_eval*self.ym_per_pix + left_fit_cr[1])2)*1.5) / np.absolute(2*left_fit_cr[0])
-        right_curverad = ((1 + (2*right_fit_cr[0]y_eval*self.ym_per_pix + right_fit_cr[1])2)*1.5) / np.absolute(2*right_fit_cr[0])
+        left_curverad = (
+            (1 + (2*left_fit_cr[0]*y_eval*self.ym_per_pix + left_fit_cr[1])**2)**1.5) / np.absolute(2*left_fit_cr[0])
+        right_curverad = (
+            (1 + (2*right_fit_cr[0]*y_eval*self.ym_per_pix + right_fit_cr[1])**2)**1.5) / np.absolute(2*right_fit_cr[0])
         # Now our radius of curvature is in meters
         # print(left_curverad, 'm', right_curverad, 'm')
 
@@ -530,6 +547,8 @@ class Autonomous:
             curve_direction = 'Right Curve'
         else:
             curve_direction = 'Straight'
+
+        Car.command = self.commands[curve_direction]
 
         return (left_curverad + right_curverad) / 2.0, curve_direction
 
@@ -600,7 +619,7 @@ class Autonomous:
         return img
 
     def __del__(self):
-        self.cap.release()
+        # self.cap.release()
         cv2.destroyAllWindows()
 
 
@@ -609,29 +628,14 @@ class MasterController:
     def __init__(self):
         '''Main framework of the car'''
 
-        # Status Variables
-        self.mode = 0
-        self.command = 0
-        self.read = 0
-
         # index mapped to modes
         self.available_modes = {
-            0: "Manual"
-            1: "IR"
-            2: "Obstacle"
-            3: "Voice"
-            4: "GUI"
+            0: "Manual",
+            1: "IR",
+            2: "Obstacle",
+            3: "Voice",
+            4: "GUI",
             5: "Autonomous"
-        }
-
-        # modes mapped to functions
-        self.select_modes = {
-            0: self.manual_mode,                    # Manual
-            1: self.ir_mode,                        # IR
-            2: self.obstacle_mode,                  # Obstacle
-            3: self.voice_controlled_mode,          # Voice
-            4: self.gui_controlled_mode,            # GUI
-            5: self.autonomous_controlled_mode,     # Autonomous
         }
 
         # Motor
@@ -646,40 +650,29 @@ class MasterController:
         # Autnomous
         self.autonomous = Autonomous()
 
+        # modes mapped to functions
+        self.trigger_mode = {
+            0: self.arduino.read,           # Manual
+            1: self.arduino.read,           # IR
+            2: self.arduino.read,           # Obstacle
+            3: self.bluetooth.run,          # Voice
+            4: self.gui_controlled_mode,    # GUI
+            5: self.self.autonomous.run,    # Autonomous
+        }
+
     # Statements that need to be run continously, non-blocking
     def loop(self):
-        self.select_modes[self.mode]()
-        self.motor.run(self.command)
+        self.trigger_mode[Car.mode]()
+        self.motor.run()
 
-    def set_mode(self, mode):
-        self.mode = mode   # from webserver
-        print("\n [*] ", self.available_modes[self.mode], " Mode")
-        self.select_modes[self.mode]()
+    def set_mode(self, mode):   # Move to webserver
+        Car.mode = mode
+        print("\n [*] ", self.available_modes[Car.mode], " Mode")
+        self.trigger_mode[self.mode]()
 
     # Mode definitions
-
-    def manual_mode(self):
-        self.arduino.read()
-        self.command = self.arduino.command
-
-    def ir_mode(self):
-        self.arduino.read()
-        self.command = self.arduino.command
-
-    def obstacle_mode(self):
-        self.arduino.read()
-        self.command = self.arduino.command
-
-    def voice_controlled_mode(self):
-        self.bluetooth.run()
-        self.command = self.bluetooth.command
-
     def gui_mode(self):  # Left to implement
         pass
-
-    def autonomous_controlled_mode(self):  # Left to implement
-        self.autonomous.run()
-        self.command = self.autonomous.command
 
     def __del__(self):
         GPIO.cleanup()
