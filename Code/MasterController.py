@@ -28,6 +28,7 @@
 # ================================================================================
 import RPi.GPIO as GPIO
 import serial
+import time
 import bluetooth
 import numpy as np
 import cv2
@@ -35,7 +36,7 @@ import os
 from matplotlib import pyplot as plt, cm, colors
 from http.server import BaseHTTPRequestHandler, HTTPServer
 # ================================================================================
-GPIO.setmode(GPIO.BOARD)
+GPIO.setmode(GPIO.BCM)
 # ================================================================================
 '''
     Serial Data format:
@@ -93,7 +94,6 @@ class Bluetooth():
 
     def disconnect(self):
         self.client_sock.close()
-        self.server_sock.close()
 
     def get_data(self):
         return str(self.client_sock.recv(1024)).split("'")[1][1:-1]
@@ -102,8 +102,9 @@ class Bluetooth():
         Car.command = self.commands(self.get_data())
 
     def __del__(self):
-        print("Bluetooth Disconnected.")
-        self.client_sock.close()
+        print("Bluetooth Disconnected")
+        try:
+            self.disconnect()
         self.server_sock.close()
 
 
@@ -111,7 +112,7 @@ class Arduino():
     def __init__(self):
         '''Arduino Serial Communication Stack'''
 
-        self.serial = serial.Serial('/dev/ttyACM0', 9600, timeout=.1)
+        self.serial = serial.Serial('/dev/ttyAMA0', 9600, timeout=.1)
         self.serial.flush()
 
     def read(self):
@@ -127,10 +128,10 @@ class Motor():
     def __init__(self):
 
         # Motor control pins
-        self.forward_pin = 1
-        self.reverse_pin = 2
-        self.left_pin = 3
-        self.right_pin = 4
+        self.forward_pin = 17
+        self.reverse_pin = 27
+        self.left_pin = 22
+        self.right_pin = 23
 
         # Command mapped to functions
         self.driver = {
@@ -142,10 +143,10 @@ class Motor():
         }
 
         # Setup
-        GPIO.output(self.forward_pin, GPIO.OUT)
-        GPIO.output(self.reverse_pin, GPIO.OUT)
-        GPIO.output(self.left_pin, GPIO.OUT)
-        GPIO.output(self.right_pin, GPIO.OUT)
+        GPIO.setup(self.forward_pin, GPIO.OUT)
+        GPIO.setup(self.reverse_pin, GPIO.OUT)
+        GPIO.setup(self.left_pin, GPIO.OUT)
+        GPIO.setup(self.right_pin, GPIO.OUT)
 
     def forward(self):
         GPIO.output(self.forward_pin, GPIO.HIGH)
@@ -694,7 +695,7 @@ class MasterController:
     def __init__(self):
         '''Main framework of the car'''
 
-        self.host_name = '192.168.0.101'
+        self.host_name = '192.168.0.100'
         self.host_port = 8000
 
         # Motor
@@ -731,7 +732,8 @@ class MasterController:
         self.motor.run()
 
     def __del__(self):
-        self.webserver.server_close()
+        try:
+            self.webserver.server_close()
         GPIO.cleanup()
 
 
@@ -741,6 +743,7 @@ if __name__ == '__main__':
     try:
         while(True):
             print(car.loop())
+            time.sleep(0.2)
     except KeyboardInterrupt:
         pass
 
