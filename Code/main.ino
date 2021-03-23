@@ -1,16 +1,20 @@
 // Sensor connections
-const int obstacle_sensor_middle_trigger_pin = 32;
-const int obstacle_sensor_middle_echo_pin = 33;
-const int obstacle_sensor_left_trigger_pin = 34;
-const int obstacle_sensor_left_echo_pin = 35;
-const int obstacle_sensor_right_trigger_pin = 36;
-const int obstacle_sensor_right_echo_pin = 37;
-const int manual_forward_sensor_pin = 38;
-const int manual_reverse_sensor_pin = 39;
-const int manual_right_sensor_pin = 40;
-const int manual_left_sensor_pin = 41;
-const int ir_right_sensor_pin = A6;
-const int ir_left_sensor_pin = A7;
+const int obstacle_sensor_middle_echo_pin = 27;
+const int obstacle_sensor_middle_trigger_pin = 29;
+
+const int obstacle_sensor_left_echo_pin = 31;
+const int obstacle_sensor_left_trigger_pin = 33;
+
+const int obstacle_sensor_right_echo_pin = 30;
+const int obstacle_sensor_right_trigger_pin = 32;
+
+const int manual_forward_sensor_pin = 45;
+const int manual_reverse_sensor_pin = 41;
+const int manual_right_sensor_pin = 39;
+const int manual_left_sensor_pin = 37;
+
+const int ir_right_sensor_pin = A10;
+const int ir_left_sensor_pin = A11;
 
 // Sensor states
 int manual_forward_sensor_state;
