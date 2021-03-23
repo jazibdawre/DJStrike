@@ -1,3 +1,4 @@
 *.*
 !.gitignore
 !code/*
+!Documentation/image.jpg
