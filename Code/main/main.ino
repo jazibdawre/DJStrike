@@ -8,10 +8,10 @@ const int obstacle_sensor_left_trigger_pin = 33;
 const int obstacle_sensor_right_echo_pin = 30;
 const int obstacle_sensor_right_trigger_pin = 32;
 
-const int manual_forward_sensor_pin = 45;
-const int manual_reverse_sensor_pin = 41;
-const int manual_right_sensor_pin = 39;
-const int manual_left_sensor_pin = 37;
+const int manual_forward_sensor_pin = 41;
+const int manual_reverse_sensor_pin = 39;
+const int manual_left_sensor_pin = 45;
+const int manual_right_sensor_pin = 43;
 
 const int ir_right_sensor_pin = A10;
 const int ir_left_sensor_pin = A11;
@@ -39,9 +39,6 @@ void setup()
   pinMode(manual_reverse_sensor_pin, INPUT);
   pinMode(manual_right_sensor_pin, INPUT);
   pinMode(manual_left_sensor_pin, INPUT);
-  //Acting as VCC power to IR sensors (Mega only pins!)
-  pinMode(52, OUTPUT);
-  pinMode(53, OUTPUT);
   Serial.begin(9600);
 }
 
@@ -67,15 +64,17 @@ char obstacle_detection_mode()
   duration = pulseIn(obstacle_sensor_right_echo_pin, HIGH);
   obstacle_sensor_right_state = (duration * 0.034 / 2);
 
-  if (obstacle_sensor_middle_state > 500)
+  //Serial.println(String(obstacle_sensor_left_state) + " - " + String(obstacle_sensor_middle_state) + " - " + String(obstacle_sensor_right_state));
+
+  if (obstacle_sensor_middle_state > 80)
   {
     return '1';
   }
-  else if (obstacle_sensor_left_state > 500)
+  else if (obstacle_sensor_left_state > 80)
   {
     return '3';
   }
-  else if (obstacle_sensor_right_state > 500)
+  else if (obstacle_sensor_right_state > 80)
   {
     return '4';
   }
@@ -121,27 +120,29 @@ char line_follower_mode()
   ir_left_sensor_state = analogRead(ir_left_sensor_pin);
   ir_right_sensor_state = analogRead(ir_right_sensor_pin);
 
-  if (ir_right_sensor_state < 500 && ir_left_sensor_state > 500)
-  {
-    return '3';
-  }
-  if (ir_right_sensor_state > 500 && ir_left_sensor_state < 500)
+  // Serial.println(String(ir_left_sensor_state)+" - "+String(ir_right_sensor_state));
+
+  if (ir_right_sensor_state < 175 && ir_left_sensor_state > 175)
   {
     return '4';
   }
-
-  if (ir_right_sensor_state < 500 && ir_left_sensor_state < 500)
+  if (ir_right_sensor_state > 175 && ir_left_sensor_state < 175)
   {
-    return '1';
+    return '3';
   }
 
-  if (ir_right_sensor_state > 500 && ir_left_sensor_state > 500)
+  if (ir_right_sensor_state < 175 && ir_left_sensor_state < 175)
   {
     return '0';
+  }
+
+  if (ir_right_sensor_state > 175 && ir_left_sensor_state > 175)
+  {
+    return '1';
   }
 }
 
 void loop()
 {
-  Serial.println(manual_mode() + ':' + line_follower_mode() + ':' + obstacle_detection_mode());
+  Serial.println(String(manual_mode()) + ":" + String(line_follower_mode()) + ":" + String(obstacle_detection_mode()));
 }

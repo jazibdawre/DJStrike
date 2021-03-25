@@ -1,4 +1,3 @@
-*.*
-!.gitignore
-!code/*
+.vscode
+Documentation
 !Documentation/image.jpg
