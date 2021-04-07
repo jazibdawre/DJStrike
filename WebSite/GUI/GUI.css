@@ -1,0 +1,137 @@
+*{
+    margin:0;
+    padding:0;
+}
+
+body{
+    font-family: 'Mulish' , sans-serif;
+    background-color: #110f0f;
+}
+#navbar
+{
+    height: 15vh;
+    width: 70%;
+    clip-path: polygon(100% 0, 95% 50%, 50% 100%, 5% 50%, 0 0);
+    position: -webkit-sticky;
+    position: sticky;
+    margin-top: 0;
+    left: 5%;
+    background: #005fa4;
+    padding: 0 10%;
+    display: flex;
+    flex-direction: row;
+    
+    
+}
+
+#navbar ul,ol
+{
+    display: flex;
+    flex-direction: row;
+    list-style: none;
+    padding: 0px 0px;
+    
+}
+ul
+{
+    position: absolute;
+    left: 5%;
+}
+ol
+{
+    position: absolute;
+    right: 3%;
+}
+li
+{
+    margin: -30px 8px;
+    font-size: 13px;
+}
+li a
+{
+    text-decoration: none;
+    color: #e2e2e2;
+    transition: 0.5s;
+}
+li a:hover
+{
+    color: #000;
+}
+#logo
+{
+    height: 100px;
+    width: 100px;
+    position: absolute;
+    top: 5px;
+    left: calc(50% - 80px);
+}
+#logo img
+{
+    height: 120px;
+}
+a{
+    position: relative;
+    display: inline-block;
+    padding: 13px 30px;
+    margin: 40px 0px;
+    color: #eee;
+    font-size: large;
+    text-decoration: none;
+    text-transform: uppercase;
+    /*overflow: hidden;*/
+    transition: 0.5s;
+    letter-spacing: 4px;
+}
+
+a:hover
+{
+    background-color: #005fa4;
+    box-shadow: 0 0 5px #005fa4,
+                0 0 25px #005fa4;
+                
+}
+
+.container{
+    display: flex;
+    flex-direction: row;
+}
+
+.buttons{
+    display: flex;
+    flex-direction: column;
+    margin-left: 3%;
+    margin-top: 7%;
+    padding: 20px;
+    align-items: center;
+}
+.centre{
+    display: flex;
+    flex-direction: row;
+    
+}
+#sideImg{
+    margin-left: 0px;
+    margin-top: 10%;
+}
+.buttons a{
+    text-align: center;
+    width: 160px;
+    border-radius: 50%;
+}
+.img{
+    margin-left: 0em;
+    animation: 10s linear 0s infinite move;
+}
+
+
+@keyframes move {
+    0% {
+        transform: rotateZ(0) scale(0.5);
+    }
+    100% {
+        transform: rotate(360deg) scale(0.5) ;
+    }
+}
+
+
+

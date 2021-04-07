@@ -1,0 +1,280 @@
+* {
+  margin: 0;
+  padding: 0;
+  -webkit-backface-visibility: hidden;
+  font-family: 'Mulish' , sans-serif;
+}
+body{
+  background: #1B1717;
+}
+/*NAVBAR*/
+#navbar
+{
+    height: 15vh;
+    width: 70%;
+    clip-path: polygon(100% 0, 95% 50%, 50% 100%, 5% 50%, 0 0);
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    left: 5%;
+    background: #005fa4;
+    padding: 0 10%;
+    display: flex;
+    flex-direction: row;
+
+}
+#navbar ul,ol
+{
+    display: flex;
+    flex-direction: row;
+    list-style: none;
+    padding: 25px 0px;
+}
+ul
+{
+    position: absolute;
+    left: 5%;
+}
+ol
+{
+    position: absolute;
+    right: 5%;
+}
+li
+{
+    margin: 0px 50px;
+    font-size: 23px;
+}
+li a
+{
+    text-decoration: none;
+    color: #e2e2e2;
+    transition: 0.5s;
+}
+li a:hover
+{
+    color: #000;
+}
+#logo
+{
+    height: 100px;
+    width: 100px;
+    position: absolute;
+    top: 5px;
+    left: calc(50% - 70px);
+}
+#logo img
+{
+    height: 120px;
+}
+
+/*WRAPPER*/
+.wrapper {
+  position: relative;
+  overflow: hidden;
+  align-content: center;
+  margin: 80px auto;
+  width: 80%;
+}
+
+.menu{
+  text-align: center;
+}
+
+.menu button {
+  margin-right: -5px;
+  margin-top: 10px;
+  padding: 10px 20px;
+  text-decoration: none;
+  font: 17px/25px Helvetica, Arial, sans-serif;
+}
+/*
+.one{
+  margin-left: 10%;
+}*/
+.menu button:hover {
+  background: #cecaca;
+  color: rgb(34, 22, 22) ;
+}
+
+/*INNER CIRCLE*/
+.buttonClass {
+  content: "MS";
+  text-align: center;
+  font: 30px/135px Georgia, Times, serif;
+  /* color: #093b62; */
+  position: absolute;
+  top: 47%;
+  left: 44%;
+  z-index: 10;
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: #fff;
+
+  -webkit-box-shadow: 3px 3px 10px rgba(0,0,0,0.3);
+  box-shadow: 3px 3px 10px rgba(0,0,0,0.3);
+}
+
+/*MAIN CIRCLE*/
+.circle {
+  position: relative;
+  margin-top: 8%;
+  margin-left: 29%;
+  margin-bottom: 20px;
+  /* margin-left: 25px; */
+  width: 30rem;
+  height: 30rem;
+  border-radius: 50%;
+  /* background: #093b62; */
+  background: #005fa4;
+
+  box-shadow: inset 0px 0px 30px rgba(0,0,0,0.3);
+  -webkit-box-shadow: inset 0px 0px 30px rgba(0,0,0,0.3);
+
+  -webkit-transition: all 0.5s ease;
+  -moz-transition: all 0.5s ease;
+  -ms-transition: all 0.5s ease;
+  -o-transition: all 0.5s ease;
+  transition: all 0.5s ease;
+}
+
+/*LITTLE CIRCLES*/
+.circle li {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: white;
+  list-style-type: none;
+  text-align: center;
+  font: 15px/50px Helvetica, Arial, sans-serif;
+  top:0;
+  left: 0;
+}
+
+.circle li:nth-child(1) {
+  top: 35px;
+  left: 100px;
+}
+
+.circle li:nth-child(2) {
+  top: 75px;
+  left: 220px;
+  -webkit-transform: rotate(51deg);
+  -moz-transform: rotate(51deg);
+  -ms-transform: rotate(51deg);
+  -o-transform: rotate(51deg);
+  transform: rotate(51deg);
+}
+
+.circle li:nth-child(3) {
+  top: 205px;
+  left: 260px;
+  -webkit-transform: rotate(102deg);
+  -moz-transform: rotate(102deg);
+  -ms-transform: rotate(102deg);
+  -o-transform: rotate(102deg);
+  transform: rotate(102deg);
+}
+
+.circle li:nth-child(4) {
+  top: 320px;
+  left: 190px;
+  -webkit-transform: rotate(153deg);
+  -moz-transform: rotate(153deg);
+  -ms-transform: rotate(153deg);
+  -o-transform: rotate(153deg);
+  transform: rotate(153deg);
+}
+
+.circle li:nth-child(5) {
+  top: 320px;
+  left: 50px;
+  -webkit-transform: rotate(204deg);
+  -moz-transform: rotate(204deg);
+  -ms-transform: rotate(204deg);
+  -o-transform: rotate(204deg);
+  transform: rotate(204deg);
+}
+.circle li:nth-child(6) {
+  top: 225px;
+  left: -40px;
+  -webkit-transform: rotate(255deg);
+  -moz-transform: rotate(255deg);
+  -ms-transform: rotate(255deg);
+  -o-transform: rotate(255deg);
+  transform: rotate(255deg);
+}
+.circle li:nth-child(7) {
+  top: 95px;
+  left: -10px;
+  -webkit-transform: rotate(306deg);
+  -moz-transform: rotate(306deg);
+  -ms-transform: rotate(306deg);
+  -o-transform: rotate(306deg);
+  transform: rotate(306deg);
+}
+/*HOVER STATES*/
+.menu > .one:hover ~ .circle {
+  -webkit-transform: rotate(0deg);
+  -moz-transform: rotate(0deg);
+  -ms-transform: rotate(0deg);
+  -o-transform: rotate(0deg);
+  transform: rotate(0deg);
+}
+
+.menu > .two:hover ~ .circle {
+  -webkit-transform: rotate(-51deg);
+  -moz-transform: rotate(-51deg);
+  -ms-transform: rotate(-51deg);
+  -o-transform: rotate(-51deg);
+  transform: rotate(-51deg);
+}
+
+.menu > .three:hover ~ .circle {
+  -webkit-transform: rotate(-102deg);
+  -moz-transform: rotate(-102deg);
+  -ms-transform: rotate(-102deg);
+  -o-transform: rotate(-102deg);
+  transform: rotate(-102deg);
+}
+
+.menu > .four:hover ~ .circle {
+  -webkit-transform: rotate(-153deg);
+  -moz-transform: rotate(-153deg);
+  -ms-transform: rotate(-153deg);
+  -o-transform: rotate(-153deg);
+  transform: rotate(-153deg);
+}
+.menu > .five:hover ~ .circle {
+  -webkit-transform: rotate(-204deg);
+  -moz-transform: rotate(-204deg);
+  -ms-transform: rotate(-204deg);
+  -o-transform: rotate(-204deg);
+  transform: rotate(-204deg);
+}
+.menu > .six:hover ~ .circle {
+  -webkit-transform: rotate(-255deg);
+  -moz-transform: rotate(-255deg);
+  -ms-transform: rotate(-255deg);
+  -o-transform: rotate(-255deg);
+  transform: rotate(-255deg);
+}
+.menu > .seven:hover ~ .circle {
+  -webkit-transform: rotate(-306deg);
+  -moz-transform: rotate(-306deg);
+  -ms-transform: rotate(-306deg);
+  -o-transform: rotate(-306deg);
+  transform: rotate(-306deg);
+}
+
+.myClass {
+  background-color: green;
+  color: white;
+  font-size: 30px;
+}
+
+.buttonClass :focus{
+  color:green;
+}
