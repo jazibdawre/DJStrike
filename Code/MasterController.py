@@ -65,6 +65,16 @@ class Car:
     mode = 0
     command = 0
 
+    # index mapped to modes
+    available_modes = {
+        0: "Manual",
+        1: "IR",
+        2: "Obstacle",
+        3: "Voice",
+        4: "GUI",
+        5: "Autonomous"
+    }
+
 
 class Bluetooth():
     def __init__(self):
@@ -102,23 +112,30 @@ class Bluetooth():
         Car.command = self.commands(self.get_data())
 
     def __del__(self):
-        print("Bluetooth Disconnected")
         try:
+            print("Bluetooth Disconnected")
             self.disconnect()
-        self.server_sock.close()
+        except Exception as e:
+            pass
+        finally:
+            self.server_sock.close()
 
 
 class Arduino():
     def __init__(self):
         '''Arduino Serial Communication Stack'''
 
-        self.serial = serial.Serial('/dev/ttyAMA0', 9600, timeout=.1)
+        self.serial = serial.Serial('/dev/ttyACM0', 9600, timeout=.1)
         self.serial.flush()
 
     def read(self):
         if self.serial.in_waiting > 0:
-            data = self.serial.readline().decode('utf-8').rstrip().split(':')
-            Car.command = data[self.mode]
+            data = self.serial.readline()
+            #print(data)
+            data = data.decode('utf-8').rstrip()
+            if(data):
+                data = data.split(':')
+                Car.command = int(data[Car.mode])
 
     def flush(self):
         self.serial.reset_input_buffer()
@@ -128,10 +145,10 @@ class Motor():
     def __init__(self):
 
         # Motor control pins
-        self.forward_pin = 17
-        self.reverse_pin = 27
-        self.left_pin = 22
-        self.right_pin = 23
+        self.left_reverse_pin = 17
+        self.left_forward_pin = 27
+        self.right_reverse_pin = 22
+        self.right_forward_pin = 23
 
         # Command mapped to functions
         self.driver = {
@@ -143,40 +160,40 @@ class Motor():
         }
 
         # Setup
-        GPIO.setup(self.forward_pin, GPIO.OUT)
-        GPIO.setup(self.reverse_pin, GPIO.OUT)
-        GPIO.setup(self.left_pin, GPIO.OUT)
-        GPIO.setup(self.right_pin, GPIO.OUT)
+        GPIO.setup(self.left_forward_pin, GPIO.OUT)
+        GPIO.setup(self.right_forward_pin, GPIO.OUT)
+        GPIO.setup(self.left_reverse_pin, GPIO.OUT)
+        GPIO.setup(self.right_reverse_pin, GPIO.OUT)
 
     def forward(self):
-        GPIO.output(self.forward_pin, GPIO.HIGH)
-        GPIO.output(self.reverse_pin, GPIO.LOW)
-        GPIO.output(self.left_pin, GPIO.LOW)
-        GPIO.output(self.right_pin, GPIO.LOW)
+        GPIO.output(self.left_forward_pin, GPIO.HIGH)
+        GPIO.output(self.right_forward_pin, GPIO.HIGH)
+        GPIO.output(self.left_reverse_pin, GPIO.LOW)
+        GPIO.output(self.right_reverse_pin, GPIO.LOW)
 
     def reverse(self):
-        GPIO.output(self.forward_pin, GPIO.LOW)
-        GPIO.output(self.reverse_pin, GPIO.HIGH)
-        GPIO.output(self.left_pin, GPIO.LOW)
-        GPIO.output(self.right_pin, GPIO.LOW)
+        GPIO.output(self.left_forward_pin, GPIO.LOW)
+        GPIO.output(self.right_forward_pin, GPIO.LOW)
+        GPIO.output(self.left_reverse_pin, GPIO.HIGH)
+        GPIO.output(self.right_reverse_pin, GPIO.HIGH)
 
     def left(self):
-        GPIO.output(self.forward_pin, GPIO.HIGH)
-        GPIO.output(self.reverse_pin, GPIO.LOW)
-        GPIO.output(self.left_pin, GPIO.HIGH)
-        GPIO.output(self.right_pin, GPIO.LOW)
+        GPIO.output(self.left_forward_pin, GPIO.LOW)
+        GPIO.output(self.right_forward_pin, GPIO.HIGH)
+        GPIO.output(self.left_reverse_pin, GPIO.LOW)
+        GPIO.output(self.right_reverse_pin, GPIO.LOW)
 
     def right(self):
-        GPIO.output(self.forward_pin, GPIO.HIGH)
-        GPIO.output(self.reverse_pin, GPIO.LOW)
-        GPIO.output(self.left_pin, GPIO.LOW)
-        GPIO.output(self.right_pin, GPIO.HIGH)
+        GPIO.output(self.left_forward_pin, GPIO.HIGH)
+        GPIO.output(self.right_forward_pin, GPIO.LOW)
+        GPIO.output(self.left_reverse_pin, GPIO.LOW)
+        GPIO.output(self.right_reverse_pin, GPIO.LOW)
 
     def stop(self):
-        GPIO.output(self.forward_pin, GPIO.LOW)
-        GPIO.output(self.reverse_pin, GPIO.LOW)
-        GPIO.output(self.left_pin, GPIO.LOW)
-        GPIO.output(self.right_pin, GPIO.LOW)
+        GPIO.output(self.left_forward_pin, GPIO.LOW)
+        GPIO.output(self.right_forward_pin, GPIO.LOW)
+        GPIO.output(self.left_reverse_pin, GPIO.LOW)
+        GPIO.output(self.right_reverse_pin, GPIO.LOW)
 
     def run(self):
         self.driver[Car.command]()
@@ -632,16 +649,6 @@ class WebServer(BaseHTTPRequestHandler):
     def __init__(self, request, client_address, server):
         super().__init__(request, client_address, server)
 
-        # index mapped to modes
-        self.available_modes = {
-            0: "Manual",
-            1: "IR",
-            2: "Obstacle",
-            3: "Voice",
-            4: "GUI",
-            5: "Autonomous"
-        }
-
     def do_HEAD(self):
         """ do_HEAD() can be tested use curl command 
             'curl -I http://server-ip-address:port' 
@@ -682,7 +689,7 @@ class WebServer(BaseHTTPRequestHandler):
             elif self.path == '/right':
                 Car.command = 4
         else:
-            print("\n [*] ", self.available_modes[Car.mode], " Mode")
+            print("\n [*] ", Car.available_modes[Car.mode], " Mode")
 
         self.send_response(200)
 
@@ -714,7 +721,6 @@ class MasterController:
         self.webserver = HTTPServer(
             (self.host_name, self.host_port), WebServer)
         print(" [*] Server started - %s:%s" % (self.host_name, self.host_port))
-        self.webserver.serve_forever()
 
         # modes mapped to functions
         self.trigger_mode = {
@@ -722,8 +728,8 @@ class MasterController:
             1: self.arduino.read,           # IR
             2: self.arduino.read,           # Obstacle
             3: self.bluetooth.run,          # Voice
-            4: self.webserver.passon,       # GUI
-            5: self.self.autonomous.run,    # Autonomous
+            4: self.webserver.serve_forever,       # GUI
+            5: self.autonomous.run,    # Autonomous
         }
 
     # Statements that need to be run continously, non-blocking
@@ -734,7 +740,10 @@ class MasterController:
     def __del__(self):
         try:
             self.webserver.server_close()
-        GPIO.cleanup()
+        except Exception as e:
+            pass
+        finally:
+            GPIO.cleanup()
 
 
 if __name__ == '__main__':
@@ -742,8 +751,7 @@ if __name__ == '__main__':
     Car.mode = 0
     try:
         while(True):
-            print(car.loop())
-            time.sleep(0.2)
+            car.loop()
     except KeyboardInterrupt:
         pass
 

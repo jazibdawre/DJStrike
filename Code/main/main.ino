@@ -9,9 +9,9 @@ const int obstacle_sensor_right_echo_pin = 30;
 const int obstacle_sensor_right_trigger_pin = 32;
 
 const int manual_forward_sensor_pin = 41;
-const int manual_reverse_sensor_pin = 39;
-const int manual_left_sensor_pin = 45;
-const int manual_right_sensor_pin = 43;
+const int manual_reverse_sensor_pin = 45;
+const int manual_left_sensor_pin = 39;
+const int manual_right_sensor_pin = 37;
 
 const int ir_right_sensor_pin = A10;
 const int ir_left_sensor_pin = A11;
